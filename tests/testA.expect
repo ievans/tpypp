@@ -1,9 +1,4 @@
-#define #0FE13h #0FE13h
-#define #0FE12h #0FE12h
-#define #0FE11h #0FE11h
-#define #0FE10h #0FE10h
 
-#define MOVTO(PORT,X)  mov dptr, PORT\n mov a, X\n movx @dptr, a\n lcall wait\n
 
  mov dptr, #0FE13h
  mov a, #080h

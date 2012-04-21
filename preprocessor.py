@@ -2,6 +2,7 @@ import re, sys
 functions, definitions = {}, {}
 verbose = False
 
+includeRegex = r"#include \"(.+)\""
 ifDefRegex = r"#ifdef (\w+)"
 elseDefRegex = r"#else"
 endifDefRegex = r"#endif"
@@ -36,9 +37,11 @@ def parseFunctionCall(s):
 def parseLine(s, linenumber):
     if isDefinition(s):
         parseDefinition(s, linenumber)
-    if isFunction(s):
+    elif isFunction(s):
         parseFunction(s, linenumber)
-
+    else:
+        return True
+    
 def preprocessLine(s, linenumber):
     # if, else, endif block
     global preprocessorState
@@ -66,10 +69,19 @@ def preprocessLine(s, linenumber):
             print 'invalid #endif statement at line ' + str(linenumber)
             sys.exit(-1)
         preprocessorState = 'initial'
+
     if preprocessorState != modified:
         if verbose: print '<pre:' + str(linenumber) + '> ' + preprocessorState + ': \t' + s.rstrip()
         return None
 
+    if re.match(includeRegex, s) != None:
+        filename = re.search(includeRegex, s).group(1)
+        return ''.join([line for line in open(filename, 'r')])
+
+    # don't echo #define lines
+    if isFunction(s) or isDefinition(s):
+        return None
+        
     # definition expansion
     for name, value in definitions.items():
         if name in s:
