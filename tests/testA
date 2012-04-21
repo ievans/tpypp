@@ -1,0 +1,33 @@
+#define 8255_CONTROL #0FE13h
+#define PORT_C #0FE12h
+#define PORT_B #0FE11h
+#define PORT_A #0FE10h
+
+#define MOVTO(PORT,X)  mov dptr, PORT\n mov a, X\n movx @dptr, a\n lcall wait\n
+
+MOVTO(8255_CONTROL,#080h)
+
+;; set for 8bit communication, 5x7 charset
+MOVTO(PORT_B,#000h)
+MOVTO(PORT_C,#038h)
+MOVTO(PORT_B,#000h)
+
+
+;;M_shouldfail_OVTO(PORT_B,#004h,X)
+
+
+#ifdef PORT_C
+hello, port C is defined
+#else
+hello, port C is *NOT* defined
+#endif
+
+#ifdef PORT_A
+port A!! woo
+#endif
+
+#ifdef NEVER_DEFINED
+uh oh
+#else
+test ok
+#endif
