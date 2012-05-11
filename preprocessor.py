@@ -6,8 +6,8 @@ includeRegex = r"#include \"(.+)\""
 ifDefRegex = r"#ifdef (\w+)"
 elseDefRegex = r"#else"
 endifDefRegex = r"#endif"
-definitionRegex = r"#define (\w+)\s+(.*)"
-functionRegex = r"#define\s+(\w+)\((\w+(?:,\w+)*)\)\s(.*)"
+definitionRegex = r"#define[ ]+(\w+)\s+(.*)"
+functionRegex = r"#define\s+(\w+)\((\w+(?:\s*,\s*\w+)*)\)\s(.*)"
 functionCallRegex = r"(\w+)\(([^\)]+)"
 
 def isFunction(s): return re.match(functionRegex, s) != None
@@ -41,7 +41,26 @@ def parseLine(s, linenumber):
         parseFunction(s, linenumber)
     else:
         return True
-    
+def parseFile(inputFilename, flagVerbose = False):
+  global verbose
+  verbose = flagVerbose
+  global preprocessorState
+  for i, line in enumerate(open(inputFilename, 'r')):
+    parseLine(line, i + 1)   
+def transformFile(inputFilename, flagVerbose = False):
+  global verbose
+  verbose = flagVerbose
+  global preprocessorState
+
+  parseFile(inputFilename, flagVerbose)
+
+  for i, line in enumerate(open(inputFilename, 'r')):
+      processedLine = preprocessLine(line, i + 1)
+      if processedLine:
+          for char in processedLine:
+              yield char
+
+
 def preprocessLine(s, linenumber):
     # if, else, endif block
     global preprocessorState
@@ -76,7 +95,8 @@ def preprocessLine(s, linenumber):
 
     if re.match(includeRegex, s) != None:
         filename = re.search(includeRegex, s).group(1)
-        return ''.join([line for line in open(filename, 'r')])
+        parseFile(filename)
+        return ''.join([char for char in transformFile(filename)])
 
     # don't echo #define lines
     if isFunction(s) or isDefinition(s):
@@ -105,15 +125,13 @@ def preprocessLine(s, linenumber):
 
     return s
 
+
+
 def preprocessFile(inputFilename, outputFilename, flagVerbose = False):
-    global verbose
-    verbose = flagVerbose
-    global preprocessorState
-    preprocessorState = 'initial'
-    for i, line in enumerate(open(inputFilename, 'r')):
-        parseLine(line, i + 1)
-    out = open(inputFilename + '.p' if outputFilename == None else outputFilename, 'w')
-    for i, line in enumerate(open(inputFilename, 'r')):
-        r = preprocessLine(line, i + 1)
-        if r != None:
-            out.write(r)
+  global verbose
+  verbose = flagVerbose
+  global preprocessorState
+  preprocessorState = 'initial'
+  out = open(inputFilename + '.p' if outputFilename == None else outputFilename, 'w')
+  for c in transformFile(inputFilename, flagVerbose):
+      out.write(c)
