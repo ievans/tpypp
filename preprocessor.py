@@ -4,6 +4,7 @@ verbose = False
 
 includeRegex = r"#include \"(.+)\""
 ifDefRegex = r"#ifdef (\w+)"
+ifNDefRegex = r"#ifndef (\w+)"
 elseDefRegex = r"#else"
 endifDefRegex = r"#endif"
 definitionRegex = r"#define[ ]+(\w+)\s+(.*)"
@@ -74,6 +75,14 @@ def preprocessLine(s, linenumber):
             preprocessorState = 'ifdef_true'
         else:
             preprocessorState = 'ifdef_false'
+    elif re.match(ifNDefReges, s) != None:
+      if preprocessorState != 'initial':
+        print str(linenumber) + ": nested #ifndef is not supported!"
+      keyword = re.search(ifNdefReges, s).group(1)
+      if keyword not in definitions:
+        preprocessorState = "ifdef_true"
+      else:
+        preprocessorState = 'ifdef_false'
     elif re.match(elseDefRegex, s) != None:
         if preprocessorState == 'ifdef_false':
             preprocessorState = 'else_true'
@@ -110,6 +119,7 @@ def preprocessLine(s, linenumber):
     # function call expansion
     if isFunctionCall(s):
         linename, lineargs = parseFunctionCall(s)
+        verbose = True
         if linename in functions:
             if verbose: print '<pre:' + str(linenumber) + '> matched ' + linename + str(lineargs)
             args, text = functions[linename]
