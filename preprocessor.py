@@ -1,4 +1,4 @@
-import re, sys
+import re, sys, os
 functions, definitions = {}, {}
 verbose = False
 
@@ -112,7 +112,10 @@ def preprocessFile(inputFilename, outputFilename, flagVerbose = False):
     preprocessorState = 'initial'
     for i, line in enumerate(open(inputFilename, 'r')):
         parseLine(line, i + 1)
-    out = open(inputFilename + '.p' if outputFilename == None else outputFilename, 'w')
+    outfilename = inputFilename + '.p' if outputFilename == None else outputFilename
+    os.remove(outfilename)
+    out = open(outfilename, 'w')
+    
     for i, line in enumerate(open(inputFilename, 'r')):
         r = preprocessLine(line, i + 1)
         if r != None:
