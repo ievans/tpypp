@@ -2,11 +2,11 @@ import re, sys, os
 functions, definitions = {}, {}
 verbose = False
 
-includeRegex = r"#include \"(.+)\""
 ifDefRegex = r"#ifdef (\w+)"
 ifNDefRegex = r"#ifndef (\w+)"
 elseDefRegex = r"#else"
 endifDefRegex = r"#endif"
+includeRegex = r"#include \"(.+)\""
 definitionRegex = r"#define[ ]+(\w+)\s+(.*)"
 functionRegex = r"#define\s+(\w+)\((\w+(?:\s*,\s*\w+)*)\)\s(.*)"
 functionCallRegex = r"(\w+)\(([^\)]+)"
@@ -43,18 +43,12 @@ def parseLine(s, linenumber):
     else:
         return True
 
-def parseFile(inputFilename, flagVerbose = False):
-  global verbose
-  verbose = flagVerbose
-  global preprocessorState
+def parseFile(inputFilename):
   for i, line in enumerate(open(inputFilename, 'r')):
     parseLine(line, i + 1)
 
-def transformFile(inputFilename, flagVerbose = False):
-  global verbose
-  verbose = flagVerbose
-  global preprocessorState
-  parseFile(inputFilename, flagVerbose)
+def transformFile(inputFilename):
+  parseFile(inputFilename)
   for i, line in enumerate(open(inputFilename, 'r')):
       processedLine = preprocessLine(line, i + 1)
       if processedLine:
@@ -132,10 +126,9 @@ def preprocessFile(inputFilename, outputFilename, flagVerbose = False):
     verbose = flagVerbose
     global preprocessorState
     preprocessorState = 'initial'
-    parseFile(inputFilename, verbose)
     outfilename = inputFilename + '.p' if outputFilename == None else outputFilename
     if os.path.exists(outfilename):
         os.remove(outfilename)
     out = open(outfilename, 'w')
-    for c in transformFile(inputFilename, flagVerbose):
+    for c in transformFile(inputFilename):
         out.write(c)
