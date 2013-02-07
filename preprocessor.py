@@ -4,10 +4,11 @@ verbose = False
 
 includeRegex = r"#include \"(.+)\""
 ifDefRegex = r"#ifdef (\w+)"
+ifNDefRegex = r"#ifndef (\w+)"
 elseDefRegex = r"#else"
 endifDefRegex = r"#endif"
-definitionRegex = r"#define (\w+)\s+(.*)"
-functionRegex = r"#define\s+(\w+)\((\w+(?:,\w+)*)\)\s(.*)"
+definitionRegex = r"#define[ ]+(\w+)\s+(.*)"
+functionRegex = r"#define\s+(\w+)\((\w+(?:\s*,\s*\w+)*)\)\s(.*)"
 functionCallRegex = r"(\w+)\(([^\)]+)"
 
 def isFunction(s): return re.match(functionRegex, s) != None
@@ -41,7 +42,26 @@ def parseLine(s, linenumber):
         parseFunction(s, linenumber)
     else:
         return True
-    
+def parseFile(inputFilename, flagVerbose = False):
+  global verbose
+  verbose = flagVerbose
+  global preprocessorState
+  for i, line in enumerate(open(inputFilename, 'r')):
+    parseLine(line, i + 1)   
+def transformFile(inputFilename, flagVerbose = False):
+  global verbose
+  verbose = flagVerbose
+  global preprocessorState
+
+  parseFile(inputFilename, flagVerbose)
+
+  for i, line in enumerate(open(inputFilename, 'r')):
+      processedLine = preprocessLine(line, i + 1)
+      if processedLine:
+          for char in processedLine:
+              yield char
+
+
 def preprocessLine(s, linenumber):
     # if, else, endif block
     global preprocessorState
@@ -55,6 +75,14 @@ def preprocessLine(s, linenumber):
             preprocessorState = 'ifdef_true'
         else:
             preprocessorState = 'ifdef_false'
+    elif re.match(ifNDefReges, s) != None:
+      if preprocessorState != 'initial':
+        print str(linenumber) + ": nested #ifndef is not supported!"
+      keyword = re.search(ifNdefReges, s).group(1)
+      if keyword not in definitions:
+        preprocessorState = "ifdef_true"
+      else:
+        preprocessorState = 'ifdef_false'
     elif re.match(elseDefRegex, s) != None:
         if preprocessorState == 'ifdef_false':
             preprocessorState = 'else_true'
@@ -76,7 +104,8 @@ def preprocessLine(s, linenumber):
 
     if re.match(includeRegex, s) != None:
         filename = re.search(includeRegex, s).group(1)
-        return ''.join([line for line in open(filename, 'r')])
+        parseFile(filename)
+        return ''.join([char for char in transformFile(filename)])
 
     # don't echo #define lines
     if isFunction(s) or isDefinition(s):
@@ -90,6 +119,7 @@ def preprocessLine(s, linenumber):
     # function call expansion
     if isFunctionCall(s):
         linename, lineargs = parseFunctionCall(s)
+        verbose = True
         if linename in functions:
             if verbose: print '<pre:' + str(linenumber) + '> matched ' + linename + str(lineargs)
             args, text = functions[linename]
@@ -105,6 +135,8 @@ def preprocessLine(s, linenumber):
 
     return s
 
+
+
 def preprocessFile(inputFilename, outputFilename, flagVerbose = False):
     global verbose
     verbose = flagVerbose
@@ -113,10 +145,8 @@ def preprocessFile(inputFilename, outputFilename, flagVerbose = False):
     for i, line in enumerate(open(inputFilename, 'r')):
         parseLine(line, i + 1)
     outfilename = inputFilename + '.p' if outputFilename == None else outputFilename
-    os.remove(outfilename)
+    if os.path.exists(outfilename):
+        os.remove(outfilename)
     out = open(outfilename, 'w')
-    
-    for i, line in enumerate(open(inputFilename, 'r')):
-        r = preprocessLine(line, i + 1)
-        if r != None:
-            out.write(r)
+    for c in transformFile(inputFilename, flagVerbose):
+        out.write(c)
