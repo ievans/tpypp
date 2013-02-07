@@ -7,13 +7,16 @@ helpstring = \
 tiny python preprocessor
 (c) 2012 Isaac Evans
 
+flags: --v for verbose mode
+if output filename is not specified, it is input filename + '.p'
+
 example macros:
 #define TEMP r6
 #define SWAP(A, B) mov TEMP, A\\n mov B, A\\n mov TEMP, B\\n
 #include "../tests.asm"
 #ifdef TEMP
 SWAP(TEMP, r2)
-#else
+.#else
 SWAP(r5, r2)
 #endif'''
 

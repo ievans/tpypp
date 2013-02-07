@@ -31,3 +31,9 @@ uh oh
 #else
 test ok
 #endif
+
+#ifndef NEVER_DEFINED
+ifndef is successful
+#else 
+ifndef failure!
+#endif
